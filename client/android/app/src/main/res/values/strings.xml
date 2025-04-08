@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lola - Always On LLM Agent</string>
+    <string name="title_activity_main">Lola - Always On LLM Agent</string>
+    <string name="package_name">com.j4ndrw.lola</string>
+    <string name="custom_url_scheme">com.j4ndrw.lola</string>
+</resources>

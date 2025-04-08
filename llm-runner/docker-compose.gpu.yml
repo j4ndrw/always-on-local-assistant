@@ -1,0 +1,43 @@
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    ports:
+      - 7869:11434
+    volumes:
+      - ollama:/root/.ollama
+    restart: always
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 30s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - ollama_network
+
+  ollama-models-pull:
+    container_name: ollama-models-pull
+    image: curlimages/curl:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - LLM=${LLM}
+    command: >
+      curl -X POST http://localhost:7869/api/pull -d '{"name":"${LLM}"}'
+    network_mode: "host"
+volumes:
+  ollama:
+networks:
+  ollama_network:
+    driver: bridge
