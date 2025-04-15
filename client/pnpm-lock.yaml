@@ -11,6 +11,9 @@ importers:
       '@anuradev/capacitor-background-mode':
         specifier: ^7.1.0
         version: 7.1.0(@capacitor/core@7.2.0)
+      '@capacitor-community/background-geolocation':
+        specifier: ^1.2.22
+        version: 1.2.22(@capacitor/core@7.2.0)
       '@capacitor-community/native-audio':
         specifier: ^7.0.0
         version: 7.0.0(@capacitor/core@7.2.0)
@@ -29,6 +32,9 @@ importers:
       '@capacitor/geolocation':
         specifier: ^7.1.1
         version: 7.1.1(@capacitor/core@7.2.0)
+      '@capacitor/local-notifications':
+        specifier: ^7.0.1
+        version: 7.0.1(@capacitor/core@7.2.0)
       '@capacitor/toast':
         specifier: ^7.0.1
         version: 7.0.1(@capacitor/core@7.2.0)
@@ -178,6 +184,11 @@ packages:
     resolution: {integrity: sha512-H45s8fVLYjbhFH62dIJ3WtmJ6RSPt/3DRO0ZcT2SUiYiQyz3BLVb9ADEnLl91m74aQPS3AzzeajZHYOalWe3bg==}
     engines: {node: '>=6.9.0'}
 
+  '@capacitor-community/background-geolocation@1.2.22':
+    resolution: {integrity: sha512-SiEV3wVb68ESV5858EKDYSjULUE9cdkSxB9E+19NwI0Td+sfTu/rDnZuVb1mu5ydoMrkmgYefbmc2R/0KYgubg==}
+    peerDependencies:
+      '@capacitor/core': '>=3.0.0'
+
   '@capacitor-community/native-audio@7.0.0':
     resolution: {integrity: sha512-wi2l68tU6KDLJWKL6I0lPUKOdB+hNxlvF7RMe/jfkKOMZnd1eUq7kszmbMqyGFZFIxdNG/GMiZrEztZHDypf8A==}
     peerDependencies:
@@ -203,6 +214,11 @@ packages:
 
   '@capacitor/geolocation@7.1.1':
     resolution: {integrity: sha512-DXqZBQZSAYXMVXw4YhL87tPDBf4DD3VEjSDWlaALakU29rhAsMloJdqLvxXLarm16dCEBeMKMkBdCgKKHWgkZQ==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
+
+  '@capacitor/local-notifications@7.0.1':
+    resolution: {integrity: sha512-GJewoiqiTLXNNRxqeJDi6vxj1Y37jLFI3KSdAM2Omvxew4ewyBSCjwOtXMQaEg+lvzGHtK6FPrSc2v/2EcL0wA==}
     peerDependencies:
       '@capacitor/core': '>=7.0.0'
 
@@ -1635,6 +1651,10 @@ snapshots:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
 
+  '@capacitor-community/background-geolocation@1.2.22(@capacitor/core@7.2.0)':
+    dependencies:
+      '@capacitor/core': 7.2.0
+
   '@capacitor-community/native-audio@7.0.0(@capacitor/core@7.2.0)':
     dependencies:
       '@capacitor/core': 7.2.0
@@ -1677,6 +1697,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 7.2.0
       '@capacitor/synapse': 1.0.2
+
+  '@capacitor/local-notifications@7.0.1(@capacitor/core@7.2.0)':
+    dependencies:
+      '@capacitor/core': 7.2.0
 
   '@capacitor/synapse@1.0.2': {}
 

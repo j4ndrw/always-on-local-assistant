@@ -5,6 +5,9 @@ project(':capacitor-android').projectDir = new File('../node_modules/.pnpm/@capa
 include ':anuradev-capacitor-background-mode'
 project(':anuradev-capacitor-background-mode').projectDir = new File('../node_modules/.pnpm/@anuradev+capacitor-background-mode@7.1.0_@capacitor+core@7.2.0/node_modules/@anuradev/capacitor-background-mode/android')
 
+include ':capacitor-community-background-geolocation'
+project(':capacitor-community-background-geolocation').projectDir = new File('../node_modules/.pnpm/@capacitor-community+background-geolocation@1.2.22_@capacitor+core@7.2.0/node_modules/@capacitor-community/background-geolocation/android')
+
 include ':capacitor-community-native-audio'
 project(':capacitor-community-native-audio').projectDir = new File('../node_modules/.pnpm/@capacitor-community+native-audio@7.0.0_@capacitor+core@7.2.0/node_modules/@capacitor-community/native-audio/android')
 

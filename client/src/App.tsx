@@ -1,48 +1,35 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect } from "react";
-import { getConversation } from "./api/conversation";
-import { hasWakeWord } from "./wake-word";
-import { sleep } from "./utils";
-import { STT } from "./plugins/speech-to-text";
-import { Speech } from "./types";
-import { tts } from "./speech-to-text";
-import { BackgroundMode } from "@anuradev/capacitor-background-mode";
-import { executeSideEffectsDrivenByLLM } from "./llm";
-import { FrontendCapabilities } from "./plugins/frontend-capabilities";
-import { Toast } from "@capacitor/toast";
-import { Geolocation } from '@capacitor/geolocation';
 
-STT.available();
+import { BackgroundMode } from "@anuradev/capacitor-background-mode";
+import { Toast } from "@capacitor/toast";
+import { Geolocation } from "@capacitor/geolocation";
+import { LocalNotifications } from "@capacitor/local-notifications";
+
+import { FrontendCapabilities } from "./plugins/frontend-capabilities";
+import { BackgroundGeolocation } from "./plugins/background-geolocation";
+import { STT } from "./plugins/speech-to-text";
+
+import { speak } from "./speech-to-speech";
+import { playAudio } from "./audio";
+import { executeSideEffectsDrivenByLLM } from "./llm";
+import { hasWakeWord } from "./wake-word";
+import { getConversation } from "./api/conversation";
+import { sleep } from "./utils";
 
 function App() {
-  const playSpeech = async (speech: Speech, onEnded: () => void) => {
-    const audioContext = new AudioContext();
-    const audioBufferSource = audioContext.createBufferSource();
-    audioBufferSource.connect(audioContext.destination);
-    audioBufferSource.addEventListener("ended", onEnded);
-
-    const response = await fetch(speech.file);
-    const arrayBuffer = await response.arrayBuffer();
-
-    await audioContext.decodeAudioData(
-      arrayBuffer,
-      (buffer) => {
-        audioBufferSource.buffer = buffer;
-        audioBufferSource.start(0);
-      },
-      (error) => {
-        console.error("Error decoding audio data:", error);
-      },
-    );
-  };
-
   const handleTranscript = async (transcript: string) => {
-    if (!hasWakeWord(transcript)) return listenForSpeech();
+    if (!hasWakeWord(transcript)) return listen();
 
-    await Toast.show({ text: `You asked Lola: "${transcript}"`, duration: "long" })
+    await playAudio("PROMPT_ACCEPTED");
+    await Toast.show({
+      text: `You asked Lola: "${transcript}"`,
+      duration: "long",
+    });
     const { installedApps } = await FrontendCapabilities.getInstalledApps();
-    const gpsPosition = await Geolocation.getCurrentPosition({ timeout: 10000 }).catch(err => {
+    const gpsPosition = await Geolocation.getCurrentPosition({
+      timeout: 10000,
+    }).catch((err) => {
       console.error(err);
       return null;
     });
@@ -50,8 +37,9 @@ function App() {
     const metadata = { installedApps, gpsPosition: { latitude, longitude } };
     const history = await getConversation(transcript, metadata);
     if (!history) {
-      const speech = await tts("I didn't get that, could you try again?");
-      return playSpeech(speech, listenForSpeech);
+      return speak("I didn't get that, could you try again?", {
+        whenDone: listen,
+      });
     }
 
     const { llmMessages, llmTools } = history.reduce<{
@@ -76,17 +64,15 @@ function App() {
     );
 
     const { content: llmResponse } = llmMessages[llmMessages.length - 1];
-    if (!llmResponse) return listenForSpeech();
+    if (!llmResponse) return listen();
 
     await Promise.all([
-      await tts(llmResponse).then((speech) =>
-        playSpeech(speech, listenForSpeech),
-      ),
+      await speak(llmResponse, { whenDone: listen }),
       executeSideEffectsDrivenByLLM(llmTools),
     ]);
   };
 
-  const listenForSpeech = async () => {
+  const listen = async () => {
     // Using while(true) to not exceed the call stack size
     while (true) {
       try {
@@ -94,7 +80,6 @@ function App() {
         if (!isListening) await STT.startListening();
         break;
       } catch (err) {
-        await Toast.show({ text: `${(err as any).message} - Trying again...`})
         console.error(err);
         await sleep(1000);
         continue;
@@ -102,45 +87,78 @@ function App() {
     }
   };
 
+  const moveAppToBackground = async () => {
+    await BackgroundMode.enable();
+    await BackgroundMode.requestNotificationsPermission();
+    await BackgroundMode.requestMicrophonePermission();
+    await BackgroundMode.requestDisableBatteryOptimizations();
+    await BackgroundMode.moveToBackground();
+  };
+
+  const keepAppAwake = async () => {
+    // Hack to keep app awake at all times
+    await BackgroundGeolocation.addWatcher(
+      {
+        backgroundTitle:
+          "Lola is currently listening for commands / interactions.",
+        requestPermissions: true,
+      },
+      () => { },
+    );
+  };
+
+  const initializeSTTModel = async () => {
+    // Using while(true) to not exceed the call stack size
+    while (true) {
+      try {
+        await STT.initializeModel();
+        await Toast.show({
+          text: "Lola's speech-to-text model is initialized.",
+        });
+        break;
+      } catch (err) {
+        console.error(err);
+        await sleep(1000);
+        continue;
+      }
+    }
+  };
+
+  const initializeConversation = async () => {
+    await STT.addListener("result", async ({ result: transcript }) => {
+      if (transcript) {
+        await STT.stopListening();
+        await handleTranscript(transcript.trim());
+      }
+    });
+    await Toast.show({ text: "Lola is ready to listen for commands." });
+    await listen().then(() =>
+      speak("Ready to listen for commands.", { whenDone: listen }),
+    );
+  };
+
+  const requestPermissions = async () => {
+    await STT.available();
+    await Geolocation.requestPermissions({
+      permissions: ["location", "coarseLocation"],
+    }).catch((err) => {
+      console.error(err);
+    });
+    await LocalNotifications.requestPermissions();
+  };
+
   useEffect(() => {
     (async () => {
-      await BackgroundMode.enable();
-      await BackgroundMode.requestNotificationsPermission();
-      await BackgroundMode.requestMicrophonePermission();
-      await BackgroundMode.requestDisableBatteryOptimizations();
-      await BackgroundMode.moveToBackground();
+      await moveAppToBackground();
+      await keepAppAwake();
+      await requestPermissions();
 
-      await Geolocation.requestPermissions({ permissions: ['location', 'coarseLocation']}).catch(err => {
-        console.error(err);
+      await Toast.show({
+        text: "Lola is initializing her speech-to-speech capabilities. Please wait...",
       });
 
-      await Toast.show({ text: "Lola is initializing her speech-to-speech capabilities. Please wait..." })
-
-      // Using while(true) to not exceed the call stack size
-      while (true) {
-        try {
-          await STT.initializeModel();
-          await Toast.show({ text: "Lola's speech-to-text model is initialized." })
-          break;
-        } catch (err) {
-          console.error(err);
-          await sleep(1000);
-          continue;
-        }
-      }
-
-      await STT.addListener("result", async ({ result: transcript }) => {
-        if (transcript) {
-          await STT.stopListening();
-          await handleTranscript(transcript.trim());
-        }
-      });
-      await listenForSpeech();
-      await Toast.show({ text: "Lola is ready to listen for commands." })
-      await playSpeech(
-        await tts("Ready to listen for commands."),
-        listenForSpeech,
-      );
+      await initializeSTTModel();
+      await initializeConversation();
     })();
   }, []);
 

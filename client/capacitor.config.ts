@@ -5,6 +5,7 @@ const config: CapacitorConfig = {
   appName: "Lola - Always On LLM Agent",
   webDir: "dist",
   plugins: { CapacitorHttp: { enabled: true } },
+  android: { useLegacyBridge: true }
 };
 
 export default config;
