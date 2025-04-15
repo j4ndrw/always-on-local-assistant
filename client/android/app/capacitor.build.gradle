@@ -14,6 +14,7 @@ dependencies {
     implementation project(':capacitor-community-native-audio')
     implementation project(':capacitor-community-speech-recognition')
     implementation project(':capacitor-geolocation')
+    implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-toast')
 
 }

@@ -1,23 +1,29 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { BackgroundMode } from "@anuradev/capacitor-background-mode";
 import { Toast } from "@capacitor/toast";
 import { Geolocation } from "@capacitor/geolocation";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { Location } from "@capacitor-community/background-geolocation";
 
 import { FrontendCapabilities } from "./plugins/frontend-capabilities";
 import { BackgroundGeolocation } from "./plugins/background-geolocation";
 import { STT } from "./plugins/speech-to-text";
 
 import { speak } from "./speech-to-speech";
-import { playAudio } from "./audio";
+import { playAudio, preloadAudioAssets } from "./audio";
 import { executeSideEffectsDrivenByLLM } from "./llm";
 import { hasWakeWord } from "./wake-word";
 import { getConversation } from "./api/conversation";
 import { sleep } from "./utils";
+import { localNotificationActions } from "./local-notifications";
+import { moveAppToBackground } from "./background-mode";
 
 function App() {
+  const [speechAudioCtxPool, setSpeechAudioCtxPool] = useState<AudioContext[]>(
+    [],
+  );
+  const gpsPosition = useRef<Location | undefined>(undefined);
   const handleTranscript = async (transcript: string) => {
     if (!hasWakeWord(transcript)) return listen();
 
@@ -27,17 +33,13 @@ function App() {
       duration: "long",
     });
     const { installedApps } = await FrontendCapabilities.getInstalledApps();
-    const gpsPosition = await Geolocation.getCurrentPosition({
-      timeout: 10000,
-    }).catch((err) => {
-      console.error(err);
-      return null;
-    });
-    const { latitude, longitude } = gpsPosition?.coords ?? {};
+    const { latitude, longitude } = gpsPosition.current ?? {};
     const metadata = { installedApps, gpsPosition: { latitude, longitude } };
     const history = await getConversation(transcript, metadata);
     if (!history) {
       return speak("I didn't get that, could you try again?", {
+        onSpeechAudioCtxCreated: (ctx) =>
+          setSpeechAudioCtxPool((prev) => [...prev, ctx]),
         whenDone: listen,
       });
     }
@@ -67,7 +69,11 @@ function App() {
     if (!llmResponse) return listen();
 
     await Promise.all([
-      await speak(llmResponse, { whenDone: listen }),
+      await speak(llmResponse, {
+        onSpeechAudioCtxCreated: (ctx) =>
+          setSpeechAudioCtxPool((prev) => [...prev, ctx]),
+        whenDone: listen,
+      }),
       executeSideEffectsDrivenByLLM(llmTools),
     ]);
   };
@@ -87,27 +93,28 @@ function App() {
     }
   };
 
-  const moveAppToBackground = async () => {
-    await BackgroundMode.enable();
-    await BackgroundMode.requestNotificationsPermission();
-    await BackgroundMode.requestMicrophonePermission();
-    await BackgroundMode.requestDisableBatteryOptimizations();
-    await BackgroundMode.moveToBackground();
-  };
-
-  const keepAppAwake = async () => {
-    // Hack to keep app awake at all times
+  const setUpGeolocationWatcher = async () => {
+    // Also a hack to keep app awake at all times
     await BackgroundGeolocation.addWatcher(
       {
         backgroundTitle:
           "Lola is currently listening for commands / interactions.",
         requestPermissions: true,
       },
-      () => { },
+      (position, error) => {
+        if (error) {
+          console.error(error);
+          return;
+        }
+        gpsPosition.current = position;
+      },
     );
   };
 
   const initializeSTTModel = async () => {
+    await Toast.show({
+      text: "Lola is initializing her speech-to-speech capabilities. Please wait...",
+    });
     // Using while(true) to not exceed the call stack size
     while (true) {
       try {
@@ -133,7 +140,11 @@ function App() {
     });
     await Toast.show({ text: "Lola is ready to listen for commands." });
     await listen().then(() =>
-      speak("Ready to listen for commands.", { whenDone: listen }),
+      speak("Ready to listen for commands.", {
+        onSpeechAudioCtxCreated: (ctx) =>
+          setSpeechAudioCtxPool((prev) => [...prev, ctx]),
+        whenDone: listen,
+      }),
     );
   };
 
@@ -147,19 +158,39 @@ function App() {
     await LocalNotifications.requestPermissions();
   };
 
+  const initializeLocalNotifications = async () => {
+    await LocalNotifications.createChannel({
+      ...localNotificationActions.channel,
+      importance: 5,
+      visibility: 1,
+    });
+
+    await localNotificationActions.interruptLola.registerActionType();
+  };
+
+  const setUpNotificationActions = async () => {
+    await LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      async (action) => {
+        await localNotificationActions.interruptLola
+          .action(action)
+          .call(speechAudioCtxPool, () => {
+            listen();
+            setSpeechAudioCtxPool([]);
+          });
+      },
+    );
+  };
+
   useEffect(() => {
-    (async () => {
-      await moveAppToBackground();
-      await keepAppAwake();
-      await requestPermissions();
-
-      await Toast.show({
-        text: "Lola is initializing her speech-to-speech capabilities. Please wait...",
-      });
-
-      await initializeSTTModel();
-      await initializeConversation();
-    })();
+    moveAppToBackground()
+      .then(requestPermissions)
+      .then(setUpGeolocationWatcher)
+      .then(preloadAudioAssets)
+      .then(setUpNotificationActions)
+      .then(initializeLocalNotifications)
+      .then(initializeSTTModel)
+      .then(initializeConversation);
   }, []);
 
   return <div />;
