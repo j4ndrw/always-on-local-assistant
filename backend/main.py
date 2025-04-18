@@ -1,17 +1,17 @@
 import json
 from typing import Any
 
-import ollama
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from ollama import ChatResponse, Message
+from ollama import Message
 from pydantic import BaseModel
 
 from .src.agent.agent import agentic_chat
 from .src.agent.frontend_capabilities import frontend_capabilities_toolkit
-from .src.agent.prompt import SYSTEM_PROMPT
+from .src.agent.conversation import history
 from .src.agent.to_do_list import to_do_toolkit
 from .src.agent.weather import weather_toolkit
+from .src.agent.conversation import conversation_toolkit
 from .src.settings.settings import settings
 
 app = FastAPI()
@@ -23,8 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ollama_client = ollama.Client("http://localhost:7869")
-history: list[Message] = [SYSTEM_PROMPT]
 
 class Conversation(BaseModel):
     prompt: str
@@ -45,13 +43,13 @@ async def conversation(conversation: Conversation, request: Request):
     ephemeral_history.append(user_message)
 
     agent_messages = agentic_chat(
-        ollama_client=ollama_client,
         llm=settings.llm,
         history=history,
         toolkits=[
             to_do_toolkit,
             frontend_capabilities_toolkit,
-            weather_toolkit
+            weather_toolkit,
+            conversation_toolkit # experimental - might delete if impractical
         ]
     )
     history.extend(agent_messages)

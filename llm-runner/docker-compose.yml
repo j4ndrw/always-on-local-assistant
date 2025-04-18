@@ -26,8 +26,10 @@ services:
         condition: service_healthy
     environment:
       - LLM=${LLM}
+      - REASONING_LLM=${REASONING_LLM}
     command: >
       curl -X POST http://localhost:7869/api/pull -d '{"name":"${LLM}"}'
+      curl -X POST http://localhost:7869/api/pull -d '{"name":"${REASONING_LLM}"}'
     network_mode: "host"
 volumes:
   ollama:

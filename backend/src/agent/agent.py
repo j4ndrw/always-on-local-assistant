@@ -2,7 +2,8 @@ from dataclasses import dataclass
 import json
 from typing import Any, Callable
 
-from ollama import Client, Message
+from ollama import Message
+from .client import ollama_client
 
 ToolRepository = dict[str, Callable]
 Tools = dict[Callable, list[Any]]
@@ -14,11 +15,12 @@ class Toolkit:
 
 def agentic_chat(
     *,
-    ollama_client: Client,
     llm: str,
     history: list[Message],
     toolkits: list[Toolkit],
 ) -> list[Message]:
+    history_snapshot = [*history]
+
     tool_repository: ToolRepository = {}
     for tool in toolkits:
         tool_repository = { **tool_repository, **tool.repository }
@@ -31,7 +33,7 @@ def agentic_chat(
 
     chat = lambda tool_repository: ollama_client.chat(
         model=llm,
-        messages=history,
+        messages=history_snapshot,
         tools=None if tool_repository is None else [*tool_repository.values()],
     )
     message = chat(tool_repository).message
@@ -66,7 +68,7 @@ def agentic_chat(
             *new_history,
             ollama_client.chat(
                 model=llm,
-                messages=[*history, *new_history],
+                messages=[*history_snapshot, *new_history],
             ).message
         ]
     return new_history
