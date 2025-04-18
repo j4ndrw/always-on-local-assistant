@@ -18,6 +18,8 @@ import { getConversation } from "./api/conversation";
 import { sleep } from "./utils";
 import { localNotificationActions } from "./local-notifications";
 import { moveAppToBackground } from "./background-mode";
+import { Contacts } from "@capacitor-community/contacts";
+import { getContacts } from "./contacts";
 
 function App() {
   const [speechAudioCtxPool, setSpeechAudioCtxPool] = useState<AudioContext[]>(
@@ -34,7 +36,9 @@ function App() {
     });
     const { installedApps } = await FrontendCapabilities.getInstalledApps();
     const { latitude, longitude } = gpsPosition.current ?? {};
-    const metadata = { installedApps, gpsPosition: { latitude, longitude } };
+    const contacts = await getContacts();
+
+    const metadata = { installedApps, gpsPosition: { latitude, longitude }, contacts };
     const history = await getConversation(transcript, metadata);
     if (!history) {
       return speak("I didn't get that, could you try again?", {
@@ -156,6 +160,7 @@ function App() {
       console.error(err);
     });
     await LocalNotifications.requestPermissions();
+    await Contacts.requestPermissions();
   };
 
   const initializeLocalNotifications = async () => {

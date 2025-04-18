@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable, Iterator
+from typing import Any
 
 import ollama
 from fastapi import FastAPI, Request, Response
@@ -9,9 +9,9 @@ from pydantic import BaseModel
 
 from .src.agent.agent import agentic_chat
 from .src.agent.frontend_capabilities import frontend_capabilities_toolkit
+from .src.agent.prompt import SYSTEM_PROMPT
 from .src.agent.to_do_list import to_do_toolkit
 from .src.agent.weather import weather_toolkit
-
 from .src.settings.settings import settings
 
 app = FastAPI()
@@ -24,35 +24,7 @@ app.add_middleware(
 )
 
 ollama_client = ollama.Client("http://localhost:7869")
-history: list[Message] = [
-    Message(role="system", content="""
-        You are Lola, an voice-based AI agent, capable of answering questions, as well as performing tasks, provided you have the necessary tools.
-
-        <restrictions>
-            Only answer in plain text instead of markdown, because your answer will be passed through a text-to-speech model.
-            Also, keep your answers short (3 - 5 sentences max)
-        </restrictions>
-
-        <user-device-interactivity>
-            Note that you are also capable of opening applications on the user's device, and interact with the device in various other ways.
-            Please do not default to refusing prompts related to interacting the the user's device.
-            Always answer as if the request has been fulfilled.
-        </user-device-interactivity>
-
-        <proof-reading>
-            Note that the prompts you will receive from the user will likely contain typos, because they are using speech-to-text
-            software to ask you things. Before answering, always proof read what the user wanted to say.
-        </proof-reading>
-    """)
-]
-
-def stream_conversation(stream: Iterator[ChatResponse], *, on_done: Callable[[Message], None] | None = None):
-    answer: Message | None = None
-    for chunk in stream:
-        answer = chunk.message
-        yield chunk.message.content
-    if answer is not None and on_done is not None:
-        on_done(answer)
+history: list[Message] = [SYSTEM_PROMPT]
 
 class Conversation(BaseModel):
     prompt: str
@@ -63,11 +35,10 @@ async def conversation(conversation: Conversation, request: Request):
     if request.headers.get("x-secret") != settings.secret:
         return Response(status_code=403)
 
-    print(f"USER: {conversation.prompt}")
-
+    settings.metadata = conversation.metadata
     ephemeral_history: list[Message] = []
 
-    settings.metadata = conversation.metadata
+    print(f"USER: {conversation.prompt}")
 
     user_message = Message(role="user", content=conversation.prompt)
     history.append(user_message)

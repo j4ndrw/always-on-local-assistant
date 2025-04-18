@@ -72,4 +72,37 @@ public class AppLauncherPlugin extends Plugin {
 
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void performActionOnExternalApp(PluginCall call) {
+        String url = call.getString("url");
+        String pkg = call.getString("package");
+        if (url == null) {
+            call.reject("Must provide a url to open");
+            return;
+        }
+
+        if (pkg == null) {
+            call.reject("Must provide a package url to open");
+            return;
+        }
+
+        JSObject ret = new JSObject();
+        Intent sendIntent = new Intent();
+        sendIntent.setAction(Intent.ACTION_VIEW);
+        sendIntent.setData(Uri.parse(url));
+        sendIntent.setPackage(pkg);
+        sendIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        try {
+            Log.d("APP LAUNCHER", "Attempting to perform action package " + pkg + ", URL: " + url);
+            getContext().startActivity(sendIntent);
+            ret.put("completed", true);
+        } catch (Exception ex) {
+            ret.put("completed", false);
+            Log.d("APP LAUNCHER EXCEPTION - FAILED TO START ACTIVITY: ", ex.getMessage());
+        }
+
+        call.resolve(ret);
+    }
 }

@@ -42,7 +42,9 @@ def add_item_to_to_do_list(item: str):
         item: The item to add to the to do list
     """
 
-    todos[item] = False
+    found_item = todos.get(item, None)
+    if found_item is not None:
+        todos[item] = False
 
 def remove_items_from_to_do_list(item: str):
     """
@@ -52,8 +54,9 @@ def remove_items_from_to_do_list(item: str):
     Args:
         item: The item to remove from the to do list
     """
-
-    del todos[item]
+    found_item = todos.get(item, None)
+    if found_item is not None:
+        del todos[item]
 
 def mark_to_do_item(item: str, completed: bool):
     """
@@ -64,7 +67,9 @@ def mark_to_do_item(item: str, completed: bool):
         item: The item in the to do list to mark
         completed: The item to remove from the to do list
     """
-    todos[item] = completed
+    found_item = todos.get(item, None)
+    if found_item is not None:
+        todos[item] = completed
 
 _repository = create_tool_repository(
     add_item_to_to_do_list,
