@@ -2,10 +2,10 @@ import urllib.parse
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from ....settings.settings import settings
-from ....utils import find_similar
-from ...tools.tools import define_toolkit, description
-from ..utils import get_application_util
+from src.agent.tools.tools import define_toolkit, description
+from src.agent.tools.utils import get_application_util
+from src.settings.settings import settings
+from src.utils import find_similar
 
 tool, resource, register_toolkit = define_toolkit()
 
@@ -98,7 +98,7 @@ def send_whatsapp_message(to: str, message: str) -> dict:
     if len(contacts_map.keys()) == 0:
         return tool.error(
             send_whatsapp_message.__name__,
-            error="No contacts found on the user's device",
+            error="No contacts found on the user's mobile device",
         )
 
     found_contact, similarity = find_similar(
@@ -154,5 +154,29 @@ def search_on_youtube(search_query: str) -> dict:
         data={
             "package": app,
             "url": f"https://www.youtube.com/results?search_query={urllib.parse.quote_plus(search_query)}",
+        },
+    )
+
+
+@tool.create(
+    description=description(
+        """
+        Plays some jazz on the user's mobile device
+        NOTE: Only use this tool if the user **explicitely** asks for the some jazz to be played.
+        """,
+        returns=[("dict", "A JSON object, containing an error or a success status")],
+    )
+)
+def play_some_jazz() -> dict:
+    song = "https://www.youtube.com/watch?v=i-8dosPqLE4"
+    app, err = get_application_util(search_on_youtube.__name__, app_name="YouTube")
+    if err:
+        return err
+
+    return frontend_capability(
+        kind="open-app-with-intent",
+        data={
+            "package": app,
+            "url": song,
         },
     )

@@ -4,9 +4,9 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from ollama import Message
 
-from .src.agent.agent import agentic_chat
-from .src.agent.models.conversation import Conversation, history
-from .src.settings.settings import settings
+from src.agent.agent import agentic_chat
+from src.agent.models.conversation import Conversation, history
+from src.settings.settings import settings
 
 app = FastAPI()
 app.add_middleware(

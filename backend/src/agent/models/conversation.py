@@ -3,7 +3,7 @@ from typing import Any
 from ollama import Message
 from pydantic import BaseModel
 
-from ..utils.prompt import SYSTEM_PROMPT
+from src.agent.utils.prompt import SYSTEM_PROMPT
 
 
 class Conversation(BaseModel):

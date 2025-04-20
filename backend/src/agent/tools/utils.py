@@ -1,6 +1,6 @@
-from ...settings.settings import settings
-from ...utils import find_similar
-from ..tools.tools import tool
+from src.agent.tools.tools import tool
+from src.settings.settings import settings
+from src.utils import find_similar
 
 
 def get_application_util(

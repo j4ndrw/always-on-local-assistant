@@ -1,7 +1,7 @@
 import requests
 
-from ....settings.settings import settings
-from ...tools.tools import define_toolkit, description
+from src.agent.tools.tools import define_toolkit, description
+from src.settings.settings import settings
 
 _, resource, register_toolkit = define_toolkit()
 

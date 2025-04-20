@@ -3,8 +3,8 @@ from typing import Callable
 
 from ollama import Message
 
-from .client import ollama_client
-from .tools.tools import ToolHandlers, ToolRepository, load_toolkits
+from src.agent.client import ollama_client
+from src.agent.tools.tools import ToolHandlers, ToolRepository, load_toolkits
 
 
 def agentic_chat(

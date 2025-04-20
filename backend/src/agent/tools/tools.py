@@ -73,7 +73,7 @@ def _update_toolkit(
             wrapper: lambda tool_call: [
                 *map(
                     lambda arg: tool_call.function.arguments.get(arg),
-                    [*inspect.signature(wrapper).parameters.keys()]
+                    [*inspect.signature(wrapper).parameters.keys()],
                 )
             ],
         }
@@ -214,7 +214,6 @@ def load_toolkits(path: str) -> list[Toolkit]:
                 full_module_name = (
                     f"{package_name}.{module_name}" if package_name else module_name
                 )
-
                 spec = importlib.util.spec_from_file_location(
                     full_module_name, module_path
                 )

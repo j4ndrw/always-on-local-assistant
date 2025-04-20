@@ -1,11 +1,10 @@
 from ollama import Message
 
+from src.agent.client import ollama_client
+from src.agent.models.conversation import history
 from src.agent.tools.tools import define_toolkit, description
-
-from ....settings.settings import settings
-from ...client import ollama_client
-from ...models.conversation import history
-from ...utils.prompt import SYSTEM_PROMPT
+from src.agent.utils.prompt import SYSTEM_PROMPT
+from src.settings.settings import settings
 
 tool, resource, register_toolkit = define_toolkit()
 
