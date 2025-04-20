@@ -1,14 +1,12 @@
 import json
-from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from ollama import Message
-from pydantic import BaseModel
 
 from .src.agent.agent import agentic_chat
 from .src.agent.frontend_capabilities import frontend_capabilities_toolkit
-from .src.agent.conversation import history
+from .src.agent.conversation import Conversation, history
 from .src.agent.to_do_list import to_do_toolkit
 from .src.agent.weather import weather_toolkit
 from .src.agent.conversation import conversation_toolkit
@@ -23,10 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-class Conversation(BaseModel):
-    prompt: str
-    metadata: dict[str, Any]
 
 @app.post("/api/conversation")
 async def conversation(conversation: Conversation, request: Request):

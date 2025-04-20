@@ -1,4 +1,6 @@
+from typing import Any
 from ollama import Message
+from pydantic import BaseModel
 
 from ..settings.settings import settings
 from .client import ollama_client
@@ -8,6 +10,10 @@ from .error import agent_tool_error
 from .success import agent_tool_success
 
 history: list[Message] = [SYSTEM_PROMPT]
+
+class Conversation(BaseModel):
+    prompt: str
+    metadata: dict[str, Any]
 
 def forget_conversation() -> dict:
     """
