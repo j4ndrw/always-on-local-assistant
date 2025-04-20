@@ -14,4 +14,4 @@ Additionally, this software represents a learning experience for me, as it has p
     - [Piper](https://github.com/rhasspy/piper) was used for text to speech
 
 Also, note that the architecture of this software is not great - I cut a lot of corners and disregarded lots of edge cases. Since I'm the only user of this software,
-I don't really case what issues other people discover. If I discover issues, I will fix them myself on the spot.
+I don't really care what issues other people discover. If I discover issues, I will fix them myself on the spot.
