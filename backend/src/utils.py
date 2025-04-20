@@ -5,7 +5,10 @@ from typing import Callable, Iterable
 def levenshtein_distance(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
-def find_similar(xs: Iterable[str], key: str, mapper: Callable[[str], str] = lambda x: x) -> tuple[str | None, float | None]:
+
+def find_similar(
+    xs: Iterable[str], key: str, mapper: Callable[[str], str] = lambda x: x
+) -> tuple[str | None, float | None]:
     if len([*xs]) == 0:
         return None, None
 

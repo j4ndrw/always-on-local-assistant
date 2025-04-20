@@ -1,6 +1,8 @@
 from ollama import Message
 
-SYSTEM_PROMPT=Message(role="system", content="""
+SYSTEM_PROMPT = Message(
+    role="system",
+    content="""
     You are Lola, an voice-based AI agent, capable of answering questions, as well as performing tasks, provided you have the necessary tools.
 
     <restrictions>
@@ -18,4 +20,5 @@ SYSTEM_PROMPT=Message(role="system", content="""
         Note that the prompts you will receive from the user will likely contain typos, because they are using speech-to-text
         software to ask you things. Before answering, always proof read what the user wanted to say.
     </proof-reading>
-""")
+""",
+)

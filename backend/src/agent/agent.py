@@ -1,35 +1,26 @@
-from dataclasses import dataclass
 import json
-from typing import Any, Callable
+from typing import Callable
 
 from ollama import Message
+
 from .client import ollama_client
+from .tools.tools import ToolHandlers, ToolRepository, load_toolkits
 
-ToolRepository = dict[str, Callable]
-Tools = dict[Callable, list[Any]]
-
-@dataclass
-class Toolkit:
-    repository: ToolRepository
-    handlers: Callable[[Message.ToolCall], Tools]
 
 def agentic_chat(
     *,
     llm: str,
     history: list[Message],
-    toolkits: list[Toolkit],
+    toolkits_path: str = "./src/agent/tools/toolkits"
 ) -> list[Message]:
+    toolkits = load_toolkits(toolkits_path)
     history_snapshot = [*history]
 
     tool_repository: ToolRepository = {}
+    tool_handlers: ToolHandlers = {}
     for tool in toolkits:
-        tool_repository = { **tool_repository, **tool.repository }
-
-    def handlers(tool_call: Message.ToolCall) -> Tools:
-        hs = {}
-        for toolkit in toolkits:
-            hs = { **hs, **toolkit.handlers(tool_call) }
-        return hs
+        tool_repository = {**tool_repository, **tool.repository}
+        tool_handlers = {**tool_handlers, **tool.handlers}
 
     chat = lambda tool_repository: ollama_client.chat(
         model=llm,
@@ -40,7 +31,7 @@ def agentic_chat(
     tool_calls = [
         *filter(
             lambda tool_call: tool_call.function.name in tool_repository,
-            message.tool_calls or []
+            message.tool_calls or [],
         )
     ]
 
@@ -52,14 +43,18 @@ def agentic_chat(
 
     found_tool = False
     for tool_call in tool_calls:
-        function_to_call: Callable | None = tool_repository.get(tool_call.function.name) # pyright: ignore
+        function_to_call: Callable | None = tool_repository.get(
+            tool_call.function.name
+        )  # pyright: ignore
         if function_to_call is None:
             continue
-        for [tool, args] in handlers(tool_call).items():
+        for [tool, args] in tool_handlers.items():
             if function_to_call.__name__ == tool.__name__:
                 found_tool = True
-                result = tool(*args)
-                tool_message = Message(role="tool", content=json.dumps(result), tool_calls=[tool_call])
+                result = tool(*args(tool_call))
+                tool_message = Message(
+                    role="tool", content=json.dumps(result), tool_calls=[tool_call]
+                )
                 new_history = [*new_history, tool_message]
                 break
 
@@ -69,12 +64,6 @@ def agentic_chat(
             ollama_client.chat(
                 model=llm,
                 messages=[*history_snapshot, *new_history],
-            ).message
+            ).message,
         ]
     return new_history
-
-def create_tool_repository(*functions: Callable) -> ToolRepository:
-    return { function.__name__: function for function in functions }
-
-def create_tool_handlers(factory: Callable[[Message.ToolCall], Tools]) -> Callable[[Message.ToolCall], Tools]:
-    return lambda tool_call: factory(tool_call)

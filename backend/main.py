@@ -5,11 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ollama import Message
 
 from .src.agent.agent import agentic_chat
-from .src.agent.frontend_capabilities import frontend_capabilities_toolkit
-from .src.agent.conversation import Conversation, history
-from .src.agent.to_do_list import to_do_toolkit
-from .src.agent.weather import weather_toolkit
-from .src.agent.conversation import conversation_toolkit
+from .src.agent.models.conversation import Conversation, history
 from .src.settings.settings import settings
 
 app = FastAPI()
@@ -39,12 +35,6 @@ async def conversation(conversation: Conversation, request: Request):
     agent_messages = agentic_chat(
         llm=settings.llm,
         history=history,
-        toolkits=[
-            to_do_toolkit,
-            frontend_capabilities_toolkit,
-            weather_toolkit,
-            conversation_toolkit # experimental - might delete if impractical
-        ]
     )
     history.extend(agent_messages)
     ephemeral_history.extend(agent_messages)
@@ -53,6 +43,11 @@ async def conversation(conversation: Conversation, request: Request):
     print(f"LOLA: {answer.content}")
 
     return Response(
-        json.dumps([{ "role": message.role, "content": message.content } for message in ephemeral_history]),
-        media_type="text/plain"
+        json.dumps(
+            [
+                {"role": message.role, "content": message.content}
+                for message in ephemeral_history
+            ]
+        ),
+        media_type="text/plain",
     )
